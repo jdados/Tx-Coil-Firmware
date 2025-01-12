@@ -25,7 +25,7 @@ void *mainThread(void *arg0){
 
     /* set the PA bias to 3.3V */
     GPIO_setConfig(Board_DIO0, GPIO_CFG_OUT_STD | GPIO_CFG_OUT_LOW);
-    GPIO_write(Board_DIO0, Board_GPIO_LED_ON);
+    GPIO_write(Board_DIO0, 0);
 
     #ifdef CONTINOUS_TX
         /* use unmodulated CW */
@@ -34,6 +34,8 @@ void *mainThread(void *arg0){
         rfHandle = RF_open(&rfObject, &RF_prop, (RF_RadioSetup*)&RF_cmdPropRadioDivSetup, &rfParams);
         /* Send CMD_FS and wait until it has completed */
         RF_runCmd(rfHandle, (RF_Op*)&RF_cmdFs, RF_PriorityNormal, NULL, 0);
+        /* Activate the CMX901 PA */
+        GPIO_write(Board_DIO0, 1);
         /* Send CMD_TX_TEST which sends forever */
         RF_runCmd(rfHandle, (RF_Op*)&RF_cmdTxTest, RF_PriorityNormal, NULL, 0);
         /* Should never come here */
@@ -55,6 +57,9 @@ void *mainThread(void *arg0){
         for (i = 0; i < PAYLOAD_LENGTH; i++){
             packet[i] = 0xFF;
         }
+
+        /* Activate the CMX901 PA */
+        GPIO_write(Board_DIO0, 1);
 
         /* Send packet */
         RF_EventMask terminationReason = RF_runCmd(rfHandle, (RF_Op*)&RF_cmdPropTx, RF_PriorityNormal, NULL, 0);
@@ -107,8 +112,12 @@ void *mainThread(void *arg0){
         /* Power down the radio */
         RF_yield(rfHandle);
 
+        /* Deactivate the CMX901 PA */
+        GPIO_write(Board_DIO0, 0);
+
         /* Sleep for PACKET_INTERVAL us */
         usleep(PACKET_INTERVAL);
     }
     #endif
 }
+
